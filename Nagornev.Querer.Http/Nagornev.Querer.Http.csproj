@@ -5,6 +5,7 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Version>1.0.0</Version>
     <Authors>nagornev</Authors>
+    <Description>Simplifies creating requests and handling responses (HTTP).</Description>
   </PropertyGroup>
 
   <ItemGroup>
