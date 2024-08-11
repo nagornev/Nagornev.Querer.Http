@@ -1,14 +1,17 @@
-# Nagornev.Querer.Http
-:information_source: __Nagornev.Querer.Http__ is library was created to simplify working with the HTTP protocol by creating and handling requests in isolation.
+# :fire: Nagornev.Querer.Http
 
-## Installation
-:arrow_down: Install the current version with __[dotnet](https://dotnet.microsoft.com/ru-ru/)__:
+## :information_source: Information
+
+This library was created to simplify working with the HTTP protocol by creating and handling requests in isolation.
+
+## :arrow_down: Installation
+Install the current version with __[dotnet](https://dotnet.microsoft.com/ru-ru/)__:
 ```C#
 dotnet add package Nagornev.Querer.Http -s "https://nuget.pkg.github.com/nagornev/index.json"
 ```
-## Usage
+## :arrows_counterclockwise: Usage
 
-### Quick start
+### :clock12: Quick start
 Use this code to send an HTTP GET-request to the server __[httpbin](https://httpbin.org)__. You will receive data about your request in JSON format.
 ```C#
 using Nagornev.Querer.Http;
@@ -32,7 +35,7 @@ await httpQuerer.SendAsync(compiler, handler);
 Console.WriteLine(handler.Content);
 ```
 
-### How to use it?
+### :bookmark_tabs: How to use it?
 The main advantages of using __Nagornev.Querer.Http__ is the creation requests and handing responses in _isolation_.
 
 #### Request:
