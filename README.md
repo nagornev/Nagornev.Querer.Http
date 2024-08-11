@@ -120,3 +120,16 @@ To configure the response, you can override the following methods:
 - __SetPreview__ - sets [HttpResponseMessage](https://learn.microsoft.com/ru-ru/dotnet/api/system.net.http.httpresponsemessage?view=net-8.0) confirmations. This handler is needed to make sure that the response from the server is correct;
 - __SetContent__ - sets property ```QuererHttpResponseMessageHandler<T>.Content```;
 - __SetScheme__ - sets compilation order;
+
+#### Sending
+
+:white_check_mark:  You can send request and handle response with method ```QuererHttpClient.SendAsync```:
+
+```C#
+var compiler = new Request();
+var handler = new Response();
+
+var client = new QuererHttpClient();
+
+await client.SendAsync(compiler, handler);
+```
