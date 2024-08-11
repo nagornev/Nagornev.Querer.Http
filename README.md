@@ -121,7 +121,7 @@ To configure the response, you can override the following methods:
 - __SetContent__ - sets property ```QuererHttpResponseMessageHandler<T>.Content```;
 - __SetScheme__ - sets compilation order;
 
-#### Sending
+#### Sending:
 
 :white_check_mark:  You can send request and handle response with method ```QuererHttpClient.SendAsync```:
 
