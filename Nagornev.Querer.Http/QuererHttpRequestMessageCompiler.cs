@@ -282,14 +282,14 @@ namespace Nagornev.Querer.Http
                 }
             }
 
-            public void Set(string key, string value)
+            public void Set(IEnumerable<KeyValuePair<string, string>> headers)
             {
-                _headers.Add(new KeyValuePair<string, string>(key, value));
+                _headers = headers.ToList();
 
                 OnHeadersChangedEvent?.Invoke();
             }
 
-            public void Set(IEnumerable<KeyValuePair<string, string>> headers)
+            public HeadersCompiler Add(IEnumerable<KeyValuePair<string, string>> headers)
             {
                 foreach (KeyValuePair<string, string> header in headers)
                 {
@@ -297,6 +297,26 @@ namespace Nagornev.Querer.Http
                 }
 
                 OnHeadersChangedEvent?.Invoke();
+
+                return this;
+            }
+
+            public HeadersCompiler Add(KeyValuePair<string, string> header)
+            {
+                _headers.Add(header);
+
+                OnHeadersChangedEvent?.Invoke();
+
+                return this;
+            }
+
+            public HeadersCompiler Add(string key, string value)
+            {
+                _headers.Add(new KeyValuePair<string, string>(key, value));
+
+                OnHeadersChangedEvent?.Invoke();
+
+                return this;
             }
         }
 
