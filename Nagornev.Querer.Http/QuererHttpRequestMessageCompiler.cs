@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using ProtoBuf;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -145,6 +146,20 @@ namespace Nagornev.Querer.Http
             public void Set(string url)
             {
                 Set(new Uri(url));
+            }
+
+            public void Set(UriBuilder builder)
+            {
+                Set(builder.Uri);
+            }
+
+            public void Set(Action<UriBuilder> callback)
+            {
+                UriBuilder builder = new UriBuilder();
+
+                callback.Invoke(builder);
+
+                Set(builder.Uri);
             }
 
             /// <summary>
