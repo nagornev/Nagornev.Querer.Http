@@ -5,7 +5,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Runtime.InteropServices;
 using System.Text;
+using System.Web;
 
 namespace Nagornev.Querer.Http
 {
@@ -104,6 +106,11 @@ namespace Nagornev.Querer.Http
 
                 OnMethodChangedEvent?.Invoke();
             }
+
+            public void Set(string method)
+            {
+                Set(new HttpMethod(method));
+            }
         }
 
         public sealed class UrlCompiler : Compiler
@@ -138,6 +145,35 @@ namespace Nagornev.Querer.Http
             public void Set(string url)
             {
                 Set(new Uri(url));
+            }
+
+            /// <summary>
+            /// Build query string (without "?").
+            /// </summary>
+            /// <param name="queries"></param>
+            /// <returns></returns>
+            public static string GetQuery(IEnumerable<KeyValuePair<string, string>> queries)
+            {
+                StringBuilder query = new StringBuilder();
+
+                for (int i = 0; i < queries.Count(); i++)
+                {
+                    query.Append(i == queries.Count() - 1 ? 
+                                    $"{queries.ElementAt(i).Key}={queries.ElementAt(i).Value}" :
+                                    $"{queries.ElementAt(i).Key}={queries.ElementAt(i).Value}&");
+                }
+
+                return query.ToString();
+            }
+
+            /// <summary>
+            /// Encode a URL string.
+            /// </summary>
+            /// <param name="value"></param>
+            /// <returns></returns>
+            public static string UrlEncode(string value)
+            {
+                return HttpUtility.UrlEncode(value);
             }
         }
 
