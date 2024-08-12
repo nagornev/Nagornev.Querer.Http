@@ -38,9 +38,9 @@ Console.WriteLine(handler.Content);
 ### :bookmark_tabs: How to use it?
 The main advantages of using __Nagornev.Querer.Http__ is the creation requests and handing responses in _isolation_.
 
-#### Request:
+#### :white_check_mark: Request:
 
-:white_check_mark:  You can create a class for the request implementing ```QuererHttpRequestMessageCompiler```:
+You can create a class for the request implementing ```QuererHttpRequestMessageCompiler```:
 
 ```C#
 public class Request : QuererHttpRequestMessageCompiler
@@ -86,16 +86,16 @@ public class Request : QuererHttpRequestMessageCompiler
 }
 ```
 To configure the request, you can override the following methods:
-- __SetMethod__ - sets request [method](https://learn.microsoft.com/ru-ru/dotnet/api/system.net.http.httpmethod?view=net-8.0);
-- __SetUrl__ - sets request [url](https://learn.microsoft.com/ru-ru/dotnet/api/system.uri?view=net-8.0);
-- __SetContent__ - sets request [content](https://learn.microsoft.com/ru-ru/dotnet/api/system.net.http.httpcontent?view=net-8.0);
-- __SetHeaders__ - sets request [headers](https://learn.microsoft.com/ru-ru/dotnet/api/system.net.http.headers.httpheaders?view=net-8.0);
-- __SetRequest__ - sets any parameters [HttpRequestMessage](https://learn.microsoft.com/ru-ru/dotnet/api/system.net.http.httprequestmessage?view=net-8.0);
-- __SetScheme__ - sets compilation order;
+- ```SetMethod(compiler)``` - sets request [method](https://learn.microsoft.com/ru-ru/dotnet/api/system.net.http.httpmethod?view=net-8.0);
+- ```SetUrl(compiler)``` - sets request [url](https://learn.microsoft.com/ru-ru/dotnet/api/system.uri?view=net-8.0);
+- ```SetContent(compiler)``` - sets request [content](https://learn.microsoft.com/ru-ru/dotnet/api/system.net.http.httpcontent?view=net-8.0);
+- ```SetHeaders(compiler)``` - sets request [headers](https://learn.microsoft.com/ru-ru/dotnet/api/system.net.http.headers.httpheaders?view=net-8.0);
+- ```SetRequest(compiler)``` - sets any parameters [HttpRequestMessage](https://learn.microsoft.com/ru-ru/dotnet/api/system.net.http.httprequestmessage?view=net-8.0);
+- ```SetScheme(schme)``` - sets compilation order;
 
-#### Response:
+#### :white_check_mark: Response:
 
-:white_check_mark:  You can create a class for the response implementing ```QuererHttpResponseMessageHandler<T>```:
+You can create a class for the response implementing ```QuererHttpResponseMessageHandler<T>```:
 
 ```C#
 
@@ -120,13 +120,13 @@ public class Response : QuererHttpResponseMessageHandler<string>
 ```
 
 To configure the response, you can override the following methods:
-- __SetPreview__ - sets [HttpResponseMessage](https://learn.microsoft.com/ru-ru/dotnet/api/system.net.http.httpresponsemessage?view=net-8.0) confirmations. This handler is needed to make sure that the response from the server is correct;
-- __SetContent__ - sets property ```QuererHttpResponseMessageHandler<T>.Content```;
-- __SetScheme__ - sets compilation order;
+- ```SetPreview(handler)``` - sets [HttpResponseMessage](https://learn.microsoft.com/ru-ru/dotnet/api/system.net.http.httpresponsemessage?view=net-8.0) confirmations. This handler is needed to make sure that the response from the server is correct;
+- ```SetContent(handler)``` - sets property ```QuererHttpResponseMessageHandler<T>.Content```;
+- ```SetScheme(scheme)```- sets compilation order;
 
-#### Sending:
+#### :white_check_mark: Sending:
 
-:white_check_mark:  You can send request and handle response with method ```QuererHttpClient.SendAsync```:
+You can send request and handle response with method ```QuererHttpClient.SendAsync()```:
 
 ```C#
 var compiler = new Request();
