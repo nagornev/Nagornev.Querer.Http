@@ -14,6 +14,7 @@
     <PackageReference Include="Nagornev.Querer" Version="1.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="protobuf-net" Version="3.2.30" />
+    <None Include="..\README.md" Pack="true" PackagePath="\"/>
   </ItemGroup>
 
 </Project>
