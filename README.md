@@ -1,18 +1,22 @@
-# :fire: Nagornev.Querer.Http
+# Nagornev.Querer.Http
 
-## :information_source: Information
+## Information
 
 This library was created to simplify working with the HTTP protocol by creating and handling requests in isolation.
 
-## :arrow_down: Installation
+## Installation
+
 Install the current version with __[dotnet](https://dotnet.microsoft.com/ru-ru/)__:
 ```C#
-dotnet add package Nagornev.Querer.Http -s "https://nuget.pkg.github.com/nagornev/index.json"
+dotnet add package Nagornev.Querer.Http"
 ```
-## :arrows_counterclockwise: Usage
 
-### :clock12: Quick start
+## Usage
+
+### Quick start
+
 Use this code to send an HTTP GET-request to the server __[httpbin](https://httpbin.org)__. You will receive data about your request in JSON format.
+
 ```C#
 using Nagornev.Querer.Http;
 using System.Net;
@@ -35,10 +39,11 @@ await httpQuerer.SendAsync(compiler, handler);
 Console.WriteLine(handler.Content);
 ```
 
-### :bookmark_tabs: How to use it?
+### How to use it?
+
 The main advantages of using __Nagornev.Querer.Http__ is the creation requests and handing responses in _isolation_.
 
-#### :white_check_mark: Request:
+#### Request:
 
 You can create a class for the request implementing ```QuererHttpRequestMessageCompiler```:
 
@@ -85,6 +90,7 @@ public class Request : QuererHttpRequestMessageCompiler
     }
 }
 ```
+
 To configure the request, you can override the following methods:
 - ```SetMethod(compiler)``` - sets request [method](https://learn.microsoft.com/ru-ru/dotnet/api/system.net.http.httpmethod?view=net-8.0);
 - ```SetUrl(compiler)``` - sets request [url](https://learn.microsoft.com/ru-ru/dotnet/api/system.uri?view=net-8.0);
@@ -93,7 +99,7 @@ To configure the request, you can override the following methods:
 - ```SetRequest(compiler)``` - sets any parameters [HttpRequestMessage](https://learn.microsoft.com/ru-ru/dotnet/api/system.net.http.httprequestmessage?view=net-8.0);
 - ```SetScheme(schme)``` - sets compilation order;
 
-#### :white_check_mark: Response:
+#### Response:
 
 You can create a class for the response implementing ```QuererHttpResponseMessageHandler<T>```:
 
@@ -124,7 +130,7 @@ To configure the response, you can override the following methods:
 - ```SetContent(handler)``` - sets property ```QuererHttpResponseMessageHandler<T>.Content```;
 - ```SetScheme(scheme)```- sets compilation order;
 
-#### :white_check_mark: Sending:
+#### Sending:
 
 You can send request and handle response with method ```QuererHttpClient.SendAsync()```:
 
