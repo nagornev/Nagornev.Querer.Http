@@ -8,7 +8,7 @@ This library was created to simplify working with the HTTP protocol by creating 
 
 Install the current version with __[dotnet](https://dotnet.microsoft.com/ru-ru/)__:
 ```C#
-dotnet add package Nagornev.Querer.Http"
+dotnet add package Nagornev.Querer.Http
 ```
 
 ## Usage
