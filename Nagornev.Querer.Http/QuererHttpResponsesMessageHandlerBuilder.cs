@@ -5,6 +5,8 @@ namespace Nagornev.Querer.Http
 {
     public class QuererHttpResponsesMessageHandlerBuilder<TContentType>
     {
+        private Action<QuererHttpResponsesMessageHandler<TContentType>.InvokerOptionsBuilder> _configure;
+
         private Action<QuererHttpResponsesMessageHandler<TContentType>.PreviewHandler> _preview;
 
         private Action<QuererHttpResponsesMessageHandler<TContentType>.ContentHandler> _content;
@@ -18,6 +20,13 @@ namespace Nagornev.Querer.Http
         public static QuererHttpResponsesMessageHandlerBuilder<TContentType> Create()
         {
             return new QuererHttpResponsesMessageHandlerBuilder<TContentType>();
+        }
+
+        public QuererHttpResponsesMessageHandlerBuilder<TContentType> UseConfigure(Action<QuererHttpResponsesMessageHandler<TContentType>.InvokerOptionsBuilder> configure)
+        {
+            _configure = configure;
+
+            return this;
         }
 
         public QuererHttpResponsesMessageHandlerBuilder<TContentType> UsePreview(Action<QuererHttpResponsesMessageHandler<TContentType>.PreviewHandler> handler)
@@ -47,24 +56,39 @@ namespace Nagornev.Querer.Http
             if (_content is null)
                 throw new ArgumentNullException(string.Empty, "The content can`t be null.");
 
-            return new QuererHttpResponsesMessageHandlerAction(_preview, _content, _scheme);
+            return new QuererHttpResponsesMessageHandlerAction(_configure,
+                                                               _preview,
+                                                               _content,
+                                                               _scheme);
         }
 
         private class QuererHttpResponsesMessageHandlerAction : QuererHttpResponsesMessageHandler<TContentType>
         {
+            private Action<InvokerOptionsBuilder> _configure;
+
             private Action<PreviewHandler> _preview;
 
             private Action<ContentHandler> _content;
 
             private Func<Scheme, IEnumerable<Scheme.Set>> _scheme;
 
-            public QuererHttpResponsesMessageHandlerAction(Action<PreviewHandler> preview,
+            public QuererHttpResponsesMessageHandlerAction(Action<InvokerOptionsBuilder> configure,
+                                                           Action<PreviewHandler> preview,
                                                            Action<ContentHandler> content,
                                                            Func<Scheme, IEnumerable<Scheme.Set>> scheme)
             {
+                _configure = configure;
                 _preview = preview;
                 _content = content;
                 _scheme = scheme;
+            }
+
+            protected override void Configure(InvokerOptionsBuilder options)
+            {
+                if (_configure is null)
+                    base.Configure(options);
+                else
+                    _configure.Invoke(options);
             }
 
             protected override void SetPreview(PreviewHandler handler)

@@ -11,13 +11,20 @@ namespace Nagornev.Querer.Http
 
         protected override void Handle(IEnumerable<HttpResponseMessage> responses)
         {
+            Invoker invoker = GetInvoker();
+
             IEnumerable<Handler> handlers = GetHandlers();
 
-            foreach (Handler handler in handlers)
-            {
-                if (!handler.Handle(responses))
-                    throw new Exception($"{handler.GetType().FullName}. Invalid handling.");
-            }
+            invoker.Invoke(handlers, responses);
+        }
+
+        private Invoker GetInvoker()
+        {
+            InvokerOptionsBuilder options = new InvokerOptionsBuilder((content) => Content = content);
+
+            Configure(options);
+
+            return new Invoker(options.Build());
         }
 
         private IEnumerable<Handler> GetHandlers()
@@ -41,6 +48,10 @@ namespace Nagornev.Querer.Http
 
             return new Scheme(new Scheme.Set(previewHandler, () => SetPreview(previewHandler)),
                               new Scheme.Set(contentHandler, () => SetContent(contentHandler)));
+        }
+
+        protected virtual void Configure(InvokerOptionsBuilder options)
+        { 
         }
 
         protected virtual IEnumerable<Scheme.Set> SetScheme(Scheme scheme)
@@ -178,6 +189,130 @@ namespace Nagornev.Querer.Http
                 internal Handler Handler { get; private set; }
 
                 internal Action Configuration { get; private set; }
+            }
+        }
+
+        #endregion
+
+        #region Invoker
+
+        public class Invoker
+        {
+            private IInvokerOptions _options;
+
+            public Invoker(IInvokerOptions options)
+            {
+                _options = options;
+            }
+
+            public void Invoke(IEnumerable<Handler> handlers, IEnumerable<HttpResponseMessage> responses)
+            {
+                foreach (Handler handler in handlers)
+                {
+                    _options.Logger?.Inform($"The handler '{handler.GetType().Name}' started handling response ({string.Join(", ", responses.Select(x=>x.RequestMessage.RequestUri))}).");
+
+                    if (!Handle(handler, responses, out Exception exception))
+                    {
+                        var failure = new QuererHttpExceptionHandling(handler.GetType(), exception);
+
+                        _options.Logger?.Error(failure, ex =>
+                        {
+                            string message = $"Failure handling by the '{ex.Name}' handler ({string.Join(", ", responses.Select(x => x.RequestMessage.RequestUri))}).";
+
+                            return ex.InnerException == null ?
+                                        message :
+                                        $"{message} {ex.InnerException.GetType().Name}: {ex.InnerException.Message}";
+                        });
+
+                        switch (_options.Failure)
+                        {
+                            case null:
+                                throw failure;
+
+                            default:
+                                _options.Failure(responses, failure);
+                                return;
+                        }
+                    }
+
+                    _options.Logger?.Inform($"The handler '{handler.GetType().Name}' completed handling response ({string.Join(", ", responses.Select(x => x.RequestMessage.RequestUri))}).");
+                }
+            }
+
+            private bool Handle(Handler handler, IEnumerable<HttpResponseMessage> response, out Exception catchedException)
+            {
+                bool result = false;
+
+                try
+                {
+                    result = handler.Handle(response);
+                    catchedException = default;
+                }
+                catch (Exception exception)
+                {
+                    catchedException = exception;
+                }
+
+                return result;
+            }
+        }
+
+        public interface IInvokerOptions
+        {
+            IQuererLogger Logger { get; }
+
+            Action<IEnumerable<HttpResponseMessage>, QuererHttpExceptionHandling> Failure { get; }
+        }
+
+        private class InvokerOptions : IInvokerOptions
+        {
+            public InvokerOptions(IQuererLogger logger,
+                                  Action<IEnumerable<HttpResponseMessage>, QuererHttpExceptionHandling> failure)
+            {
+                Logger = logger;
+                Failure = failure;
+            }
+
+            public IQuererLogger Logger { get; private set; }
+
+            public Action<IEnumerable<HttpResponseMessage>, QuererHttpExceptionHandling> Failure { get; private set; }
+
+        }
+
+        public class InvokerOptionsBuilder
+        {
+            private readonly Action<TContentType> _content;
+
+            private Action<IEnumerable<HttpResponseMessage>, QuererHttpExceptionHandling> _failure;
+
+            private IQuererLogger _logger;
+
+            internal InvokerOptionsBuilder(Action<TContentType> content)
+            {
+                _content = content;
+            }
+
+            public InvokerOptionsBuilder SetFailure(Func<IEnumerable<HttpResponseMessage>, QuererHttpExceptionHandling, TContentType> failure)
+            {
+                _failure = (response, exception) =>
+                {
+                    TContentType content = failure.Invoke(response, exception);
+                    _content.Invoke(content);
+                };
+
+                return this;
+            }
+
+            public InvokerOptionsBuilder SetLogger(IQuererLogger logger)
+            {
+                _logger = logger;
+
+                return this;
+            }
+
+            internal IInvokerOptions Build()
+            {
+                return new InvokerOptions(_logger, _failure);
             }
         }
 
