@@ -39,7 +39,7 @@ namespace Nagornev.Querer.Http.Loggers
         {
             Console.Write($"[{DateTime.Now}] - ");
             Console.ForegroundColor = _logColors[log];
-            Console.Write($"[{log.ToString().ToLower()}]");
+            Console.Write($"[{log.ToString().ToUpper()}]");
             Console.ResetColor();
             Console.Write($": {message}\n");
         }

@@ -52,7 +52,6 @@ namespace Nagornev.Querer.Http
 
         protected virtual void Configure(InvokerOptionsBuilder options)
         {
-            options.SetFailure((response, exception) => throw exception);
         }
 
         protected virtual void SetPreview(PreviewHandler handler)
@@ -194,39 +193,56 @@ namespace Nagornev.Querer.Http
                 _options = options;
             }
 
+            /// <summary>
+            /// Start handling the response.
+            /// </summary>
+            /// <param name="handlers"></param>
+            /// <param name="response"></param>
+            /// <exception cref="InvalidOperationException"></exception>
             public void Invoke(IEnumerable<Handler> handlers, HttpResponseMessage response)
             {
                 foreach (Handler handler in handlers)
                 {
-                    _options.Logger?.Inform($"The handler '{handler.GetType().Name}' started handling response ({response.RequestMessage.RequestUri}).");
+                    _options.Logger?.Inform($"Start of handling the '{handler.GetType().Name}' handler ({response.RequestMessage.RequestUri}).");
 
-                    try
+                    if (!Handle(handler, response, out Exception exception))
                     {
-                        if (!handler.Handle(response))
+                        var failure = new InvalidOperationException($"Failure handling by the '{handler.GetType().Name}' handler.", exception);
+
+                        _options.Logger?.Error(failure, ex => failure.InnerException is null ?
+                                                                failure.Message :
+                                                                $"{failure.Message} {ex.InnerException.GetType().Name}: {ex.InnerException.Message}");
+
+                        switch (_options.Failure)
                         {
-                            QuererHttpExceptionHandling fail = new QuererHttpExceptionHandling(handler.GetType());
+                            case null:
+                                throw failure;
 
-                            _options.Logger?.Error(fail, ex => $"Failure handling by the '{ex.Name}' handler ({response.RequestMessage.RequestUri}).");
-
-                            _options.Failure.Invoke(response, fail);
-
-                            return;
+                            default:
+                                _options.Failure(response, failure);
+                                return;
                         }
-
-                    }
-                    catch(Exception exception)
-                    {
-                        QuererHttpExceptionHandling fail = new QuererHttpExceptionHandling(handler.GetType(), exception);
-
-                        _options.Logger?.Error(fail, ex => $"Failure handling by the '{ex.Name}' handler ({response.RequestMessage.RequestUri}). {ex.InnerException.GetType().Name}: {ex.InnerException.Message}");
-
-                        _options.Failure.Invoke(response, fail);
-
-                        return;
                     }
 
-                    _options.Logger?.Inform($"The handler '{handler.GetType().Name}' completed handling response ({response.RequestMessage.RequestUri}).");
+                    _options.Logger?.Inform($"Successful handling by the '{handler.GetType().Name}' handler ({response.RequestMessage.RequestUri}).");
                 }
+            }
+
+            private bool Handle(Handler handler, HttpResponseMessage response, out Exception catchedException)
+            {
+                bool result = false;
+
+                try
+                {
+                    result = handler.Handle(response);
+                    catchedException = default;
+                }
+                catch (Exception exception)
+                {
+                    catchedException = exception;
+                }
+
+                return result;
             }
         }
 
@@ -234,13 +250,13 @@ namespace Nagornev.Querer.Http
         {
             IQuererLogger Logger { get; }
 
-            Action<HttpResponseMessage, QuererHttpExceptionHandling> Failure { get; } 
+            Action<HttpResponseMessage, InvalidOperationException> Failure { get; }
         }
 
         private class InvokerOptions : IInvokerOptions
         {
             public InvokerOptions(IQuererLogger logger,
-                                  Action<HttpResponseMessage, QuererHttpExceptionHandling> failure)
+                                  Action<HttpResponseMessage, InvalidOperationException> failure)
             {
                 Logger = logger;
                 Failure = failure;
@@ -248,15 +264,15 @@ namespace Nagornev.Querer.Http
 
             public IQuererLogger Logger { get; private set; }
 
-            public Action<HttpResponseMessage, QuererHttpExceptionHandling> Failure { get; private set; }
+            public Action<HttpResponseMessage, InvalidOperationException> Failure { get; private set; }
 
         }
 
-        public class InvokerOptionsBuilder 
+        public class InvokerOptionsBuilder
         {
             private readonly Action<TContentType> _content;
 
-            private Action<HttpResponseMessage, QuererHttpExceptionHandling> _failure;
+            private Action<HttpResponseMessage, InvalidOperationException> _failure;
 
             private IQuererLogger _logger;
 
@@ -265,7 +281,7 @@ namespace Nagornev.Querer.Http
                 _content = content;
             }
 
-            public InvokerOptionsBuilder SetFailure(Func<HttpResponseMessage, QuererHttpExceptionHandling, TContentType> failure)
+            public InvokerOptionsBuilder SetFailure(Func<HttpResponseMessage, InvalidOperationException, TContentType> failure)
             {
                 _failure = (response, exception) =>
                 {
@@ -285,9 +301,6 @@ namespace Nagornev.Querer.Http
 
             internal IInvokerOptions Build()
             {
-                if (_failure is null)
-                    throw new ArgumentNullException("The failure can not be null.");
-
                 return new InvokerOptions(_logger, _failure);
             }
         }

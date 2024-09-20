@@ -1,10 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace Nagornev.Querer.Http
 {
-    public class QuererHttpClient : QuererClient<HttpRequestMessage, HttpResponseMessage>
+    public class QuererHttpClient : QuererClient<HttpRequestMessage, HttpResponseMessage>, IDisposable
     {
         private readonly HttpClient _httpClient;
 
@@ -59,6 +60,11 @@ namespace Nagornev.Querer.Http
             IEnumerable<HttpResponseMessage> responses = await SendAsync(compiler);
 
             Handle(handler, responses);
+        }
+
+        public void Dispose()
+        {
+            _httpClient.Dispose();
         }
     }
 }

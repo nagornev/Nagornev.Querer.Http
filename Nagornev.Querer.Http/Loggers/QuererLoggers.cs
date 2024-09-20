@@ -28,7 +28,7 @@ namespace Nagornev.Querer.Http.Loggers
             }
         }
 
-        public void Error<TExceptionType>(TExceptionType exception, Func<TExceptionType, string> message) 
+        public void Error<TExceptionType>(TExceptionType exception, Func<TExceptionType, string> message)
             where TExceptionType : Exception
         {
             foreach (IQuererLogger logger in _loggers)

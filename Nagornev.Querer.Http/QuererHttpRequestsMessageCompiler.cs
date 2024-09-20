@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 
 namespace Nagornev.Querer.Http
@@ -9,6 +11,12 @@ namespace Nagornev.Querer.Http
 
         public QuererHttpRequestsMessageCompiler()
         {
+            _compilers = GetCompilers();
+        }
+
+        public QuererHttpRequestsMessageCompiler(params QuererHttpRequestMessageCompiler[] compilers)
+            : this((IEnumerable<QuererHttpRequestMessageCompiler>)compilers)
+        {
         }
 
         public QuererHttpRequestsMessageCompiler(IEnumerable<QuererHttpRequestMessageCompiler> compilers)
@@ -16,14 +24,16 @@ namespace Nagornev.Querer.Http
             _compilers = compilers;
         }
 
-        public QuererHttpRequestsMessageCompiler(params QuererHttpRequestMessageCompiler[] compilers)
-        {
-            _compilers = compilers;
-        }
-
         protected override IEnumerable<HttpRequestMessage> Compile()
         {
-            return Compile(_compilers);
+            return !(_compilers is null) || _compilers.Count() < 1 ?
+                     Compile(_compilers) :
+                     throw new ArgumentNullException("The compilers collection is null. Ovveride the 'GetCompilers' method or set compilers in constructor.");
+        }
+
+        protected virtual IEnumerable<QuererHttpRequestMessageCompiler> GetCompilers()
+        {
+            return default;
         }
     }
 }

@@ -1,12 +1,10 @@
 ﻿using Newtonsoft.Json;
 using ProtoBuf;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Web;
 
@@ -23,6 +21,11 @@ namespace Nagornev.Querer.Http
             foreach (Compiler compiler in compilers)
             {
                 compiler.Compile(request);
+            }
+
+            using (QuererHttpClient clinet = new QuererHttpClient())
+            {
+
             }
 
             return request;
@@ -42,7 +45,7 @@ namespace Nagornev.Querer.Http
 
         private Scheme GetScheme()
         {
-            PreviewCompilers preview = new PreviewCompilers();
+            PreviewCompilersBuilder preview = new PreviewCompilersBuilder();
 
             MethodCompiler methodCompiler = new MethodCompiler(preview);
             UrlCompiler urlCompiler = new UrlCompiler(preview);
@@ -85,9 +88,9 @@ namespace Nagornev.Querer.Http
 
             private HttpMethod _method;
 
-            private PreviewCompilers _preview;
+            private PreviewCompilersBuilder _preview;
 
-            internal MethodCompiler(PreviewCompilers preview)
+            internal MethodCompiler(PreviewCompilersBuilder preview)
             {
                 _preview = preview;
 
@@ -120,16 +123,21 @@ namespace Nagornev.Querer.Http
 
             private Uri _url;
 
-            private PreviewCompilers _preview;
+            private PreviewCompilersBuilder _preview;
 
-            internal UrlCompiler(PreviewCompilers preview)
+            private UrlTool _tool;
+
+            internal UrlCompiler(PreviewCompilersBuilder preview)
             {
                 _preview = preview;
+                _tool = new UrlTool();
 
                 OnUrlChangedEvent += () => _preview.Url = _url;
             }
 
             public IPreviewCompilers Preview => _preview;
+
+            public UrlTool Tool => _tool;
 
             internal override void Compile(HttpRequestMessage request)
             {
@@ -161,35 +169,6 @@ namespace Nagornev.Querer.Http
 
                 Set(builder.Uri);
             }
-
-            /// <summary>
-            /// Build query string (without "?").
-            /// </summary>
-            /// <param name="queries"></param>
-            /// <returns></returns>
-            public static string GetQuery(IEnumerable<KeyValuePair<string, string>> queries)
-            {
-                StringBuilder query = new StringBuilder();
-
-                for (int i = 0; i < queries.Count(); i++)
-                {
-                    query.Append(i == queries.Count() - 1 ? 
-                                    $"{queries.ElementAt(i).Key}={queries.ElementAt(i).Value}" :
-                                    $"{queries.ElementAt(i).Key}={queries.ElementAt(i).Value}&");
-                }
-
-                return query.ToString();
-            }
-
-            /// <summary>
-            /// Encode a URL string.
-            /// </summary>
-            /// <param name="value"></param>
-            /// <returns></returns>
-            public static string UrlEncode(string value)
-            {
-                return HttpUtility.UrlEncode(value);
-            }
         }
 
         public sealed class ContentCompiler : Compiler
@@ -200,16 +179,21 @@ namespace Nagornev.Querer.Http
 
             private HttpContent _content;
 
-            private PreviewCompilers _preview;
+            private PreviewCompilersBuilder _preview;
 
-            internal ContentCompiler(PreviewCompilers preview)
+            private ContentTool _tool;
+
+            internal ContentCompiler(PreviewCompilersBuilder preview)
             {
                 _preview = preview;
+                _tool = new ContentTool();
 
                 OnContentChangedEvent += () => _preview.Content = _content;
             }
 
             public IPreviewCompilers Preview => _preview;
+
+            public ContentTool Tool => _tool;
 
             internal override void Compile(HttpRequestMessage request)
             {
@@ -242,32 +226,6 @@ namespace Nagornev.Querer.Http
             {
                 Set(new FormUrlEncodedContent(content));
             }
-
-            /// <summary>
-            /// Serialization method for protobuf-net object.
-            /// </summary>
-            /// <param name="obj"></param>
-            /// <returns></returns>
-            public static byte[] Protobuff(object obj)
-            {
-                MemoryStream stream;
-
-                using (stream = new MemoryStream())
-                    Serializer.Serialize(stream, obj);
-
-                return stream.ToArray();
-            }
-
-            /// <summary>
-            /// Serialization method for Newtonsoft.Json object.
-            /// </summary>
-            /// <param name="obj"></param>
-            /// <param name="settings"></param>
-            /// <returns></returns>
-            public static string Json(object obj, JsonSerializerSettings settings = null)
-            {
-                return JsonConvert.SerializeObject(obj, settings);
-            }
         }
 
         public sealed class HeadersCompiler : Compiler
@@ -276,9 +234,9 @@ namespace Nagornev.Querer.Http
 
             private List<KeyValuePair<string, string>> _headers;
 
-            private PreviewCompilers _preview;
+            private PreviewCompilersBuilder _preview;
 
-            internal HeadersCompiler(PreviewCompilers preview)
+            internal HeadersCompiler(PreviewCompilersBuilder preview)
             {
                 _headers = new List<KeyValuePair<string, string>>();
 
@@ -297,11 +255,13 @@ namespace Nagornev.Querer.Http
                 }
             }
 
-            public void Set(IEnumerable<KeyValuePair<string, string>> headers)
+            public HeadersCompiler Set(IEnumerable<KeyValuePair<string, string>> headers)
             {
                 _headers = headers.ToList();
 
                 OnHeadersChangedEvent?.Invoke();
+
+                return this;
             }
 
             public HeadersCompiler Add(IEnumerable<KeyValuePair<string, string>> headers)
@@ -339,9 +299,9 @@ namespace Nagornev.Querer.Http
         {
             private Action<HttpRequestMessage> _callback;
 
-            private PreviewCompilers _preview;
+            private PreviewCompilersBuilder _preview;
 
-            internal RequestCompiler(PreviewCompilers container)
+            internal RequestCompiler(PreviewCompilersBuilder container)
             {
                 _preview = container;
             }
@@ -416,9 +376,9 @@ namespace Nagornev.Querer.Http
 
         #region Preview
 
-        public class PreviewCompilers : IPreviewCompilers
+        public class PreviewCompilersBuilder : IPreviewCompilers
         {
-            internal PreviewCompilers()
+            internal PreviewCompilersBuilder()
             {
             }
 
@@ -441,6 +401,83 @@ namespace Nagornev.Querer.Http
             HttpContent Content { get; }
 
             IEnumerable<KeyValuePair<string, string>> Headers { get; }
+        }
+
+        #endregion
+
+        #region Tools
+
+        public interface ITool
+        {
+        }
+
+        public class UrlTool : ITool
+        {
+            internal UrlTool()
+            {
+            }
+
+            /// <summary>
+            /// Build query string (without "?").
+            /// </summary>
+            /// <param name="queries"></param>
+            /// <returns></returns>
+            public string GetQuery(IEnumerable<KeyValuePair<string, string>> queries)
+            {
+                StringBuilder query = new StringBuilder();
+
+                for (int i = 0; i < queries.Count(); i++)
+                {
+                    query.Append(i == queries.Count() - 1 ?
+                                    $"{queries.ElementAt(i).Key}={queries.ElementAt(i).Value}" :
+                                    $"{queries.ElementAt(i).Key}={queries.ElementAt(i).Value}&");
+                }
+
+                return query.ToString();
+            }
+
+            /// <summary>
+            /// Encode a URL string.
+            /// </summary>
+            /// <param name="value"></param>
+            /// <returns></returns>
+            public string UrlEncode(string value)
+            {
+                return HttpUtility.UrlEncode(value);
+            }
+        }
+
+        public class ContentTool : ITool
+        {
+            internal ContentTool()
+            {
+            }
+
+            /// <summary>
+            /// Serialization method for protobuf-net object.
+            /// </summary>
+            /// <param name="obj"></param>
+            /// <returns></returns>
+            public byte[] Protobuff(object obj)
+            {
+                MemoryStream stream;
+
+                using (stream = new MemoryStream())
+                    Serializer.Serialize(stream, obj);
+
+                return stream.ToArray();
+            }
+
+            /// <summary>
+            /// Serialization method for Newtonsoft.Json object.
+            /// </summary>
+            /// <param name="obj"></param>
+            /// <param name="settings"></param>
+            /// <returns></returns>
+            public string Json(object obj, JsonSerializerSettings settings = null)
+            {
+                return JsonConvert.SerializeObject(obj, settings);
+            }
         }
 
         #endregion

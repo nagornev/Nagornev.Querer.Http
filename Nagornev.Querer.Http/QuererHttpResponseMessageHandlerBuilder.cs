@@ -53,7 +53,7 @@ namespace Nagornev.Querer.Http
         public QuererHttpResponseMessageHandler<TContentType> Build()
         {
             if (_content is null)
-                throw new ArgumentNullException(string.Empty, "The content can`t be null.");
+                throw new ArgumentNullException(string.Empty, "The content can not be null.");
 
             return new QuererHttpResponseMessageHandlerAction(_configure,
                                                               _preview,

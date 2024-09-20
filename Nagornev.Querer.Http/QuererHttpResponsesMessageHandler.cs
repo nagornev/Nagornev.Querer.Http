@@ -51,7 +51,7 @@ namespace Nagornev.Querer.Http
         }
 
         protected virtual void Configure(InvokerOptionsBuilder options)
-        { 
+        {
         }
 
         protected virtual IEnumerable<Scheme.Set> SetScheme(Scheme scheme)
@@ -205,24 +205,25 @@ namespace Nagornev.Querer.Http
                 _options = options;
             }
 
+            /// <summary>
+            /// Start handling the responses.
+            /// </summary>
+            /// <param name="handlers"></param>
+            /// <param name="responses"></param>
+            /// <exception cref="InvalidOperationException"></exception>
             public void Invoke(IEnumerable<Handler> handlers, IEnumerable<HttpResponseMessage> responses)
             {
                 foreach (Handler handler in handlers)
                 {
-                    _options.Logger?.Inform($"The handler '{handler.GetType().Name}' started handling response ({string.Join(", ", responses.Select(x=>x.RequestMessage.RequestUri))}).");
+                    _options.Logger?.Inform($"Start of handling the '{handler.GetType().Name}' handler ({string.Join(", ", responses.Select(x => x.RequestMessage.RequestUri))}).");
 
                     if (!Handle(handler, responses, out Exception exception))
                     {
-                        var failure = new QuererHttpExceptionHandling(handler.GetType(), exception);
+                        var failure = new InvalidOperationException($"Failure handling by the '{handler.GetType().Name}' handler.", exception);
 
-                        _options.Logger?.Error(failure, ex =>
-                        {
-                            string message = $"Failure handling by the '{ex.Name}' handler ({string.Join(", ", responses.Select(x => x.RequestMessage.RequestUri))}).";
-
-                            return ex.InnerException == null ?
-                                        message :
-                                        $"{message} {ex.InnerException.GetType().Name}: {ex.InnerException.Message}";
-                        });
+                        _options.Logger?.Error(failure, ex => failure.InnerException is null ?
+                                                                failure.Message :
+                                                                $"{failure.Message} {ex.InnerException.GetType().Name}: {ex.InnerException.Message}");
 
                         switch (_options.Failure)
                         {
@@ -235,7 +236,7 @@ namespace Nagornev.Querer.Http
                         }
                     }
 
-                    _options.Logger?.Inform($"The handler '{handler.GetType().Name}' completed handling response ({string.Join(", ", responses.Select(x => x.RequestMessage.RequestUri))}).");
+                    _options.Logger?.Inform($"Successful handling by the '{handler.GetType().Name}' handler ({string.Join(", ", responses.Select(x => x.RequestMessage.RequestUri))}).");
                 }
             }
 
@@ -261,13 +262,13 @@ namespace Nagornev.Querer.Http
         {
             IQuererLogger Logger { get; }
 
-            Action<IEnumerable<HttpResponseMessage>, QuererHttpExceptionHandling> Failure { get; }
+            Action<IEnumerable<HttpResponseMessage>, InvalidOperationException> Failure { get; }
         }
 
         private class InvokerOptions : IInvokerOptions
         {
             public InvokerOptions(IQuererLogger logger,
-                                  Action<IEnumerable<HttpResponseMessage>, QuererHttpExceptionHandling> failure)
+                                  Action<IEnumerable<HttpResponseMessage>, InvalidOperationException> failure)
             {
                 Logger = logger;
                 Failure = failure;
@@ -275,7 +276,7 @@ namespace Nagornev.Querer.Http
 
             public IQuererLogger Logger { get; private set; }
 
-            public Action<IEnumerable<HttpResponseMessage>, QuererHttpExceptionHandling> Failure { get; private set; }
+            public Action<IEnumerable<HttpResponseMessage>, InvalidOperationException> Failure { get; private set; }
 
         }
 
@@ -283,7 +284,7 @@ namespace Nagornev.Querer.Http
         {
             private readonly Action<TContentType> _content;
 
-            private Action<IEnumerable<HttpResponseMessage>, QuererHttpExceptionHandling> _failure;
+            private Action<IEnumerable<HttpResponseMessage>, InvalidOperationException> _failure;
 
             private IQuererLogger _logger;
 
@@ -292,7 +293,7 @@ namespace Nagornev.Querer.Http
                 _content = content;
             }
 
-            public InvokerOptionsBuilder SetFailure(Func<IEnumerable<HttpResponseMessage>, QuererHttpExceptionHandling, TContentType> failure)
+            public InvokerOptionsBuilder SetFailure(Func<IEnumerable<HttpResponseMessage>, InvalidOperationException, TContentType> failure)
             {
                 _failure = (response, exception) =>
                 {
