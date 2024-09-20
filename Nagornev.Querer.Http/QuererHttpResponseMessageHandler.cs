@@ -52,6 +52,7 @@ namespace Nagornev.Querer.Http
 
         protected virtual void Configure(InvokerOptionsBuilder options)
         {
+            options.SetFailure((response, exception) => throw exception);
         }
 
         protected virtual void SetPreview(PreviewHandler handler)
@@ -199,49 +200,33 @@ namespace Nagornev.Querer.Http
                 {
                     _options.Logger?.Inform($"The handler '{handler.GetType().Name}' started handling response ({response.RequestMessage.RequestUri}).");
 
-                    if (!Handle(handler, response, out Exception exception))
+                    try
                     {
-                        var failure = new QuererHttpExceptionHandling(handler.GetType(), exception);
-
-                        _options.Logger?.Error(failure, ex =>
+                        if (!handler.Handle(response))
                         {
-                            string message = $"Failure handling by the '{ex.Name}' handler ({response.RequestMessage.RequestUri}).";
+                            QuererHttpExceptionHandling fail = new QuererHttpExceptionHandling(handler.GetType());
 
-                            return ex.InnerException == null ?
-                                        message :
-                                        $"{message} {ex.InnerException.GetType().Name}: {ex.InnerException.Message}";
-                        });
+                            _options.Logger?.Error(fail, ex => $"Failure handling by the '{ex.Name}' handler ({response.RequestMessage.RequestUri}).");
 
-                        switch (_options.Failure)
-                        {
-                            case null:
-                                throw failure;
+                            _options.Failure.Invoke(response, fail);
 
-                            default:
-                                _options.Failure(response, failure);
-                                return;
+                            return;
                         }
+
+                    }
+                    catch(Exception exception)
+                    {
+                        QuererHttpExceptionHandling fail = new QuererHttpExceptionHandling(handler.GetType(), exception);
+
+                        _options.Logger?.Error(fail, ex => $"Failure handling by the '{ex.Name}' handler ({response.RequestMessage.RequestUri}). {ex.InnerException.GetType().Name}: {ex.InnerException.Message}");
+
+                        _options.Failure.Invoke(response, fail);
+
+                        return;
                     }
 
                     _options.Logger?.Inform($"The handler '{handler.GetType().Name}' completed handling response ({response.RequestMessage.RequestUri}).");
                 }
-            }
-
-            private bool Handle(Handler handler, HttpResponseMessage response, out Exception catchedException)
-            {
-                bool result = false;
-
-                try
-                {
-                    result = handler.Handle(response);
-                    catchedException = default;
-                }
-                catch (Exception exception)
-                {
-                    catchedException = exception;
-                }
-
-                return result;
             }
         }
 
@@ -300,6 +285,9 @@ namespace Nagornev.Querer.Http
 
             internal IInvokerOptions Build()
             {
+                if (_failure is null)
+                    throw new ArgumentNullException("The failure can not be null.");
+
                 return new InvokerOptions(_logger, _failure);
             }
         }

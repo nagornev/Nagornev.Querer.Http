@@ -3,7 +3,7 @@ using System.IO;
 
 namespace Nagornev.Querer.Http.Loggers
 {
-    internal class QuererFileLogger : IQuererLogger
+    public class QuererFileLogger : IQuererLogger
     {
         private enum LogType
         {
