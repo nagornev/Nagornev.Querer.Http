@@ -21,20 +21,32 @@ Use this code to send an HTTP GET-request to the server __[httpbin](https://http
 using Nagornev.Querer.Http;
 using System.Net;
 
-var httpQuerer = new QuererHttpClient();
+QuererHttpClient client = new QuererHttpClient();
 
-var compiler = QuererHttpRequestMessageCompilerBuilder.Create()
-                                                        .UseMethod(compiler => compiler.Set(HttpMethod.Get))
-                                                        .UseUrl(compiler => compiler.Set(new Uri("https://httpbin.org/get")))
-                                                      .Build();
 
-var handler  = QuererHttpResponseMessageHandlerBuilder<string>.Create()
-                                                                .UsePreview(handler => handler.Set(response => response.StatusCode == HttpStatusCode.OK))
-                                                                .UseContent(handler => handler.SetContent(response => response.GetText())
-                                                                                              .SetConfirmation(content => !string.IsNullOrEmpty(content)))
-                                                              .Build();
+QuererHttpRequestMessageCompiler compiler = QuererHttpRequestMessageCompilerBuilder.Create()
+                                                                                      .UseMethod(c => c.Set(HttpMethod.Post))
+                                                                                      .UseUrl(c => c.Set("http://httpbin.org/post"))
+                                                                                      .UseHeaders(c => c.Set(new Dictionary<string, string>()
+                                                                                                             {
+                                                                                                                 { "Quick-Start-Header-Key", "QuickStartHeaderValue"}    
+                                                                                                             }))
+                                                                                      .UseContent(c => c.Set(new Dictionary<string, string>()
+                                                                                                             {
+                                                                                                                { "quickStartContentKey", "QuickStartContentValue"} 
+                                                                                                             }))
+                                                                                      .UseScheme(s => s.Default())
+                                                                                   .Build();
 
-await httpQuerer.SendAsync(compiler, handler);
+QuererHttpResponseMessageHandler<string> handler = QuererHttpResponseMessageHandlerBuilder<string>.Create()
+                                                                                                     .UseConfigure(h => h.SetFailure(options => options.AddFailure<Exception>((response, excepion) => "Failure content"))
+                                                                                                                         .SetLogger(options=> options.AddConsole()))
+                                                                                                     .UsePreview(h => h.Set(response => response.StatusCode == HttpStatusCode.OK))
+                                                                                                     .UseContent(h => h.SetContent(response => response.GetText()))
+                                                                                                     .UseScheme(s => s.Default())
+                                                                                                   .Build();
+
+await client.SendAsync(compiler, handler);
 
 Console.WriteLine(handler.Content);
 ```
@@ -109,8 +121,14 @@ public class Response : QuererHttpResponseMessageHandler<string>
 {
     protected override void Configure(InvokerOptionsBuilder options)
     {
-        options.SetFailure((response, exception) => "Failure content.")
-               .SetLogger(new QuererConsoleLogger());
+        options.SetFailure(options =>
+                           {
+                               options.AddFailure<Exception>((response, exception) =>
+                               {
+                                   return "Failure content.";
+                               });
+                           })
+               .SetLogger(options => options.AddConsole());
     }
 
     protected override void SetPreview(PreviewHandler handler)

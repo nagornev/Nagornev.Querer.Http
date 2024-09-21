@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using Nagornev.Querer.Http.Extensions;
+using Nagornev.Querer.Http.Loggers;
 
 namespace Nagornev.Querer.Http
 {
@@ -184,7 +186,7 @@ namespace Nagornev.Querer.Http
 
         #region Invoker
 
-        public class Invoker
+        internal class Invoker
         {
             private IInvokerOptions _options;
 
@@ -207,21 +209,17 @@ namespace Nagornev.Querer.Http
 
                     if (!Handle(handler, response, out Exception exception))
                     {
-                        var failure = new InvalidOperationException($"Failure handling by the '{handler.GetType().Name}' handler.", exception);
+                        var failure = exception is null ?
+                                        new InvalidOperationException($"Failed handling by the '{handler.GetType().Name}' handler.") :
+                                        exception;
 
-                        _options.Logger?.Error(failure, ex => failure.InnerException is null ?
-                                                                failure.Message :
-                                                                $"{failure.Message} {ex.InnerException.GetType().Name}: {ex.InnerException.Message}");
+                        _options.Logger?.Error(failure, ex => exception is null? 
+                                                                $"{ex.GetType().Name}: {ex.Message}":
+                                                                $"{ex.GetType().Name}: Failed handling by the '{handler.GetType().Name}' handler.");
 
-                        switch (_options.Failure)
-                        {
-                            case null:
-                                throw failure;
+                        _options.Failure(response, failure);
 
-                            default:
-                                _options.Failure(response, failure);
-                                return;
-                        }
+                        return;
                     }
 
                     _options.Logger?.Inform($"Successful handling by the '{handler.GetType().Name}' handler ({response.RequestMessage.RequestUri}).");
@@ -246,62 +244,113 @@ namespace Nagornev.Querer.Http
             }
         }
 
-        public interface IInvokerOptions
+        internal interface IInvokerOptions
         {
             IQuererLogger Logger { get; }
 
-            Action<HttpResponseMessage, InvalidOperationException> Failure { get; }
+            void Failure<T>(HttpResponseMessage response, T exception) 
+                where T : Exception;
         }
 
-        private class InvokerOptions : IInvokerOptions
+        internal class InvokerOptions : IInvokerOptions
         {
-            public InvokerOptions(IQuererLogger logger,
-                                  Action<HttpResponseMessage, InvalidOperationException> failure)
+            public IDictionary<Type, Action<HttpResponseMessage, Exception>> _failures { get; private set; }
+
+
+            public InvokerOptions(IDictionary<Type, Action<HttpResponseMessage, Exception>> failures, 
+                                  IQuererLogger logger)
             {
+                _failures = failures;
                 Logger = logger;
-                Failure = failure;
             }
 
             public IQuererLogger Logger { get; private set; }
 
-            public Action<HttpResponseMessage, InvalidOperationException> Failure { get; private set; }
+            public void Failure<T>(HttpResponseMessage response, T exception) 
+                where T : Exception
+            {
+                Type catchedFailure = exception.GetType();
 
+                if (_failures.TryGetValue(catchedFailure, out Action<HttpResponseMessage, Exception> direct) |
+                    _failures.TryGetValue((fail) => catchedFailure.IsSubclassOf(fail.Key), out Action<HttpResponseMessage, Exception> indirect))
+                {
+                    (direct ?? indirect).Invoke(response, exception);
+                    return;
+                }
+
+                throw exception;
+            }
         }
 
         public class InvokerOptionsBuilder
         {
-            private readonly Action<TContentType> _content;
+            public class FailureBuilder
+            {
+                private readonly Action<TContentType> _content;
 
-            private Action<HttpResponseMessage, InvalidOperationException> _failure;
+                private IDictionary<Type, Action<HttpResponseMessage, Exception>> _failures;
 
-            private IQuererLogger _logger;
+                internal FailureBuilder(Action<TContentType> content)
+                {
+                    _content = content;
+                    _failures = new Dictionary<Type, Action<HttpResponseMessage, Exception>>();
+                }
+
+                public FailureBuilder AddFailure<T>(Action<HttpResponseMessage, T> failure)
+                    where T : Exception
+                {
+                    _failures.Add(typeof(T), (Action<HttpResponseMessage, Exception>)failure);
+
+                    return this;
+                }
+
+                public FailureBuilder AddFailure<T>(Func<HttpResponseMessage, T, TContentType> failure)
+                    where T : Exception
+                {
+                    _failures.Add(typeof(T), (response, exception) => 
+                    {
+                        TContentType content = failure.Invoke(response, (T)exception);
+
+                        _content.Invoke(content);
+                    });
+
+                    return this;
+                }
+
+                public IDictionary<Type, Action<HttpResponseMessage, Exception>> Build()
+                {
+                    return _failures;
+                }
+            }
+
+            private FailureBuilder _failureBuilder;
+
+            private QuererLoggerBuilder _loggerBuilder;
 
             internal InvokerOptionsBuilder(Action<TContentType> content)
             {
-                _content = content;
+                _failureBuilder = new FailureBuilder(content);
+                _loggerBuilder = new QuererLoggerBuilder();
             }
 
-            public InvokerOptionsBuilder SetFailure(Func<HttpResponseMessage, InvalidOperationException, TContentType> failure)
+            public InvokerOptionsBuilder SetFailure(Action<FailureBuilder> options)
             {
-                _failure = (response, exception) =>
-                {
-                    TContentType content = failure.Invoke(response, exception);
-                    _content.Invoke(content);
-                };
+                options.Invoke(_failureBuilder);
 
                 return this;
             }
 
-            public InvokerOptionsBuilder SetLogger(IQuererLogger logger)
+            public InvokerOptionsBuilder SetLogger(Action<QuererLoggerBuilder> options)
             {
-                _logger = logger;
+                options.Invoke(_loggerBuilder);
 
                 return this;
             }
 
             internal IInvokerOptions Build()
             {
-                return new InvokerOptions(_logger, _failure);
+                return new InvokerOptions(_failureBuilder.Build(),
+                                          _loggerBuilder.Build());
             }
         }
 

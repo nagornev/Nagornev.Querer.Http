@@ -32,7 +32,7 @@ namespace Nagornev.Querer.Http.Loggers
         public void Error<TExceptionType>(TExceptionType exception, Func<TExceptionType, string> message)
             where TExceptionType : Exception
         {
-            Log(LogType.Error, message.Invoke(exception));
+            Log(LogType.Error, $"{message.Invoke(exception)}\n{exception.StackTrace}");
         }
 
         private void Log(LogType log, string message)

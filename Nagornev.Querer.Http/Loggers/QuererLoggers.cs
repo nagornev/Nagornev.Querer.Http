@@ -8,6 +8,11 @@ namespace Nagornev.Querer.Http.Loggers
         private readonly IReadOnlyCollection<IQuererLogger> _loggers;
 
         public QuererLoggers(params IQuererLogger[] loggers)
+            : this((IReadOnlyCollection<IQuererLogger>)loggers)
+        {
+        }
+
+        public QuererLoggers(IReadOnlyCollection<IQuererLogger> loggers)
         {
             _loggers = loggers;
         }
