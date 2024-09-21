@@ -18,33 +18,32 @@ dotnet add package Nagornev.Querer.Http
 Use this code to send an HTTP GET-request to the server __[httpbin](https://httpbin.org)__. You will receive data about your request in JSON format.
 
 ```C#
-using Nagornev.Querer.Http;
-using System.Net;
-
 QuererHttpClient client = new QuererHttpClient();
 
 
-QuererHttpRequestMessageCompiler compiler = QuererHttpRequestMessageCompilerBuilder.Create()
-                                                                                      .UseMethod(c => c.Set(HttpMethod.Post))
-                                                                                      .UseUrl(c => c.Set("http://httpbin.org/post"))
-                                                                                      .UseHeaders(c => c.Set(new Dictionary<string, string>()
-                                                                                                             {
-                                                                                                                 { "Quick-Start-Header-Key", "QuickStartHeaderValue"}    
-                                                                                                             }))
-                                                                                      .UseContent(c => c.Set(new Dictionary<string, string>()
-                                                                                                             {
-                                                                                                                { "quickStartContentKey", "QuickStartContentValue"} 
-                                                                                                             }))
-                                                                                      .UseScheme(s => s.Default())
-                                                                                   .Build();
+QuererHttpRequestMessageCompiler compiler = QuererHttpRequestMessageCompilerBuilder
+                                                .Create()
+                                                    .UseMethod(c => c.Set(HttpMethod.Post))
+                                                    .UseUrl(c => c.Set("http://httpbin.org/post"))
+                                                    .UseHeaders(c => c.Set(new Dictionary<string, string>()
+                                                                           {
+                                                                               { "Quick-Start-Header-Key", "QuickStartHeaderValue"}    
+                                                                           }))
+                                                    .UseContent(c => c.Set(new Dictionary<string, string>()
+                                                                           {
+                                                                              { "quickStartContentKey", "QuickStartContentValue"} 
+                                                                           }))
+                                                    .UseScheme(s => s.Default())
+                                                .Build();
 
-QuererHttpResponseMessageHandler<string> handler = QuererHttpResponseMessageHandlerBuilder<string>.Create()
-                                                                                                     .UseConfigure(h => h.SetFailure(options => options.AddFailure<Exception>((response, excepion) => "Failure content"))
-                                                                                                                         .SetLogger(options=> options.AddConsole()))
-                                                                                                     .UsePreview(h => h.Set(response => response.StatusCode == HttpStatusCode.OK))
-                                                                                                     .UseContent(h => h.SetContent(response => response.GetText()))
-                                                                                                     .UseScheme(s => s.Default())
-                                                                                                   .Build();
+QuererHttpResponseMessageHandler<string> handler = QuererHttpResponseMessageHandlerBuilder<string>
+                                                       .Create()
+                                                           .UseConfigure(h => h.SetFailure(options => options.AddFailure<Exception>((response, excepion) => "Failure content"))
+                                                                               .SetLogger(options=> options.AddConsole()))
+                                                           .UsePreview(h => h.Set(response => response.StatusCode == HttpStatusCode.OK))
+                                                           .UseContent(h => h.SetContent(response => response.GetText()))
+                                                           .UseScheme(s => s.Default())
+                                                       .Build();
 
 await client.SendAsync(compiler, handler);
 
