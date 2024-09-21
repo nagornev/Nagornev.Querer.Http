@@ -41,7 +41,8 @@ QuererHttpResponseMessageHandler<string> handler = QuererHttpResponseMessageHand
                                                            .UseConfigure(h => h.SetFailure(options => options.AddFailure<Exception>((response, excepion) => "Failure content"))
                                                                                .SetLogger(options=> options.AddConsole()))
                                                            .UsePreview(h => h.Set(response => response.StatusCode == HttpStatusCode.OK))
-                                                           .UseContent(h => h.SetContent(response => response.GetText()))
+                                                           .UseContent(h => h.Set(response => response.GetText())
+                                                                             .Confirm(content => !string.IsNullOrEmpty(content)))
                                                            .UseScheme(s => s.Default())
                                                        .Build();
 
