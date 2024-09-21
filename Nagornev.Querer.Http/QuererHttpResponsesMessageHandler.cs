@@ -138,14 +138,14 @@ namespace Nagornev.Querer.Http
                 return _confirmation?.Invoke(content) ?? content != null;
             }
 
-            public ContentHandler SetContent(Func<IEnumerable<HttpResponseMessage>, TContentType> content)
+            public ContentHandler Set(Func<IEnumerable<HttpResponseMessage>, TContentType> content)
             {
                 _content = content;
 
                 return this;
             }
 
-            public ContentHandler SetConfirmation(Func<TContentType, bool> confirmation)
+            public ContentHandler Confirm(Func<TContentType, bool> confirmation)
             {
                 _confirmation = confirmation;
 
