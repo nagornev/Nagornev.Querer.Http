@@ -138,8 +138,8 @@ public class Response : QuererHttpResponseMessageHandler<string>
 
     protected override void SetContent(ContentHandler handler)
     {
-        handler.SetContent(response => response.GetText())
-               .SetConfirmation(content => !string.IsNullOrEmpty(content));
+        handler.Set(response => response.GetText())
+               .Confirm(content => !string.IsNullOrEmpty(content));
     }
 
     protected override IEnumerable<Scheme.Set> SetScheme(Scheme scheme)
