@@ -150,8 +150,8 @@ public class Response : QuererHttpResponseMessageHandler<string>
 ```
 
 To configure the response, you can override the following methods:
-- ```Configure(options)``` - sets handling options. ```SetFailure(Func<HttpResponseMessage/[], QuererHttpException, TContentType> failure)``` - the method that be called, if any handler return false or throw unhandled exception. 
-                                                    ```SetLogger(IQuererLogger)``` - set handling logger (base loggers: ```QuererConsoleLogger``` and ```QuererFileLogger```).
+- ```Configure(options)``` - sets handling options. ```SetFailure(IvokerOptionsBuilder)``` - sets the methods to handle unhandled exceptions. 
+                                                    ```SetLogger(QuererLoggerBuilder)``` - sets the handling loggers.
 - ```SetPreview(handler)``` - sets [HttpResponseMessage](https://learn.microsoft.com/ru-ru/dotnet/api/system.net.http.httpresponsemessage?view=net-8.0) confirmations. This handler is needed to make sure that the response from the server is correct;
 - ```SetContent(handler)``` - sets property ```QuererHttpResponseMessageHandler<T>.Content```;
 - ```SetScheme(scheme)```- sets compilation order;

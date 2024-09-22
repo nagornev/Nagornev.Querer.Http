@@ -33,6 +33,16 @@ namespace Nagornev.Querer.Http.Loggers
             return this;
         }
 
+        public QuererLoggerBuilder AddLogger<TLoggerType>(params object[] parameters)
+            where TLoggerType : IQuererLogger, new()
+        {
+            TLoggerType logger = (TLoggerType)Activator.CreateInstance(typeof(TLoggerType), parameters);
+
+            _loggers.Add(logger);
+
+            return this;
+        }
+
         public QuererLoggerBuilder AddLoggers(params IQuererLogger[] loggers)
         {
             _loggers.AddRange(loggers);
