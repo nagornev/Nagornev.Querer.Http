@@ -23,11 +23,6 @@ namespace Nagornev.Querer.Http
                 compiler.Compile(request);
             }
 
-            using (QuererHttpClient clinet = new QuererHttpClient())
-            {
-
-            }
-
             return request;
         }
 
